@@ -4,7 +4,7 @@ A modern, production-grade AI-powered SaaS platform frontend built with **React*
 
 ---
 
-![FIRST UI](https://github.com/sicte/AI-Powered Saas/blob/main/assets/img/first.gif)
+![FIRST UI](https://github.com/sicte/AI-Powered-Saas/blob/main/assets/img/first.gif)
 
 ## Features
 
