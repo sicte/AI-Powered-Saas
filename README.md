@@ -4,9 +4,12 @@ A modern, production-grade AI-powered SaaS platform frontend built with **React*
 
 ---
 
+![FIRST UI](https://github.com/sicte/AI-Powered Saas/blob/main/assets/img/first.gif)
+
 ## Features
 
 ### 🚀 Landing Page
+
 - **Hero Section:** High-converting header with live AI prompt preview simulation and call-to-actions.
 - **Features Section:** Detailed showcase of platform capabilities (Advanced LLM generation, multimodal support, enterprise security, API access).
 - **Interactive Playground:** Live demonstration area where visitors can test AI prompts directly on the marketing site.
@@ -14,6 +17,7 @@ A modern, production-grade AI-powered SaaS platform frontend built with **React*
 - **Navigation & Footer:** Responsive navigation bar with quick launch and dark-mode polished styling.
 
 ### 💼 Application Dashboard
+
 - **AI Chat & Playground:** Multi-model selector (`Nexus 2.0 Turbo`, `Nexus 2.0 Pro`, `Nexus 1.5`, `Nexus Vision`), temperature control, and real-time generation simulation.
 - **Chat History:** Persistent sidebar listing past conversations and quick session management.
 - **Templates Library:** Pre-built prompts and starter templates for marketing copy, code review, data analysis, etc.
@@ -36,23 +40,27 @@ A modern, production-grade AI-powered SaaS platform frontend built with **React*
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v18+ recommended)
 - npm or yarn
 
 ### Installation & Running Locally
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd ai-powered-saas
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Run the development server:
+
    ```bash
    npm run dev
    ```
