@@ -223,7 +223,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-white/30 font-mono">Model:</span>
-                    <span className="text-xs text-brand-400 font-mono font-medium">claude-3-5-sonnet</span>
+                    <span className="text-xs text-brand-400 font-mono font-medium">gemini-3.5-flash</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-white/30 font-mono">
                     <span>128k ctx</span>

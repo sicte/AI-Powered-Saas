@@ -35,10 +35,10 @@ const navItems: { id: NavItem; label: string; icon: typeof MessageSquare }[] = [
 ];
 
 const models = [
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', desc: 'Anthropic · Advanced reasoning', badge: 'New' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · High throughput', badge: 'Default' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google · 2M context', badge: '' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', desc: 'Anthropic · Advanced reasoning', badge: '' },
   { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI · Multimodal & fast', badge: '' },
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · High throughput', badge: '' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google · 2M context', badge: 'Beta' },
 ];
 
 const chatHistory = [

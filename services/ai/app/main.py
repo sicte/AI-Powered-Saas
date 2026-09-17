@@ -3,7 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+from dotenv import load_dotenv
 import google.generativeai as genai
+
+load_dotenv()
 
 app = FastAPI(title="AI-Powered SaaS Python Service", version="1.0.0")
 
@@ -31,7 +34,7 @@ class EmbeddingResponse(BaseModel):
 
 class GenerateRequest(BaseModel):
     prompt: str
-    model: Optional[str] = "gemini-1.5-flash"
+    model: Optional[str] = "gemini-3.5-flash"
     temperature: Optional[float] = 0.7
 
 class GenerateResponse(BaseModel):
@@ -50,7 +53,7 @@ def generate_ai_response(req: GenerateRequest):
             raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is not set.")
         genai.configure(api_key=api_key)
         
-        model_name = req.model if req.model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-3.5-flash"] else "gemini-1.5-flash"
+        model_name = req.model if req.model in ["gemini-3.5-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"] else "gemini-3.5-flash"
         model = genai.GenerativeModel(model_name)
         
         result = model.generate_content(
@@ -62,10 +65,6 @@ def generate_ai_response(req: GenerateRequest):
         # Graceful fallback response if API rate limit or network issue occurs
         fallback_text = f"Gemini AI Response (Live Integration Fallback):\nBased on your prompt: '{req.prompt}', here is the analysis and generated solution. [Error detail: {str(e)}]"
         return {"response": fallback_text, "model": req.model}
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
 
 @app.post("/api/v1/chunk", response_model=ChunkResponse)
 def chunk_document(req: DocumentChunkRequest):
