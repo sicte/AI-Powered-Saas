@@ -26,33 +26,29 @@ The AI software market is projected to reach **$1.3 trillion** by 2032, driven b
   },
   code: {
     title: 'Generated Code',
-    content: `import { NexusAI } from '@nexus-ai/sdk';
+    content: `import { AIOrchestrationService } from '@ai-saas/ai-sdk';
 
-// Initialize the client
-const ai = new NexusAI({
-  apiKey: process.env.NEXUS_API_KEY,
-  model: 'nexus-2.0-turbo',
-});
+// Initialize the multi-provider client
+const ai = new AIOrchestrationService();
+const provider = ai.getProvider('openai');
 
 // Analyze customer feedback at scale
 async function analyzeFeedback(reviews: string[]) {
-  const results = await ai.batch({
-    prompt: \`Analyze sentiment and extract
-      key themes from this review: \${review}\`,
-    inputs: reviews,
+  const response = await provider.generateText({
+    model: 'gpt-4o',
+    messages: reviews.map(r => ({
+      role: 'user',
+      content: \`Analyze sentiment and extract key themes from this review: \${r}\`
+    })),
     temperature: 0.3,
   });
 
-  return results.map(r => ({
-    sentiment: r.sentiment,
-    themes: r.themes,
-    confidence: r.score,
-  }));
+  return response.content;
 }
 
-// Process 10k reviews in <5 seconds
+// Process reviews with real-time backend integration
 const insights = await analyzeFeedback(feedbackData);
-console.log(\`Analyzed \${insights.length} reviews\`);`,
+console.log(insights);`,
   },
   data: {
     title: 'Data Visualization',
@@ -102,7 +98,7 @@ export default function Playground() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating) return;
 
     setIsGenerating(true);
@@ -110,24 +106,37 @@ export default function Playground() {
     setOutput('');
     setDisplayedOutput('');
 
-    const result = sampleOutputs[outputType].content;
+    const currentPrompt = prompt;
 
-    timerRef.current = setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          model: 'gemini-1.5-flash',
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend generation failed.');
+      }
+
+      const data = await response.json();
+      const result = data.response || 'No response returned.';
+
       setIsGenerating(false);
       setHasResult(true);
       setOutput(result);
-
-      // Type out the response
-      let idx = 0;
-      const typeOut = () => {
-        if (idx <= result.length) {
-          setDisplayedOutput(result.slice(0, idx));
-          idx += 3;
-          timerRef.current = setTimeout(typeOut, 8);
-        }
-      };
-      typeOut();
-    }, 1500);
+      setDisplayedOutput(result);
+    } catch (error: any) {
+      setIsGenerating(false);
+      setHasResult(true);
+      const errResult = `Error connecting to backend service: ${error.message || 'Unknown error'}`;
+      setOutput(errResult);
+      setDisplayedOutput(errResult);
+    }
   };
 
   useEffect(() => {
@@ -155,7 +164,7 @@ export default function Playground() {
             The <span className="text-brand-gradient">Playground</span>
           </h2>
           <p className="mt-4 text-white/50 text-lg">
-            Type a prompt and watch NexusAI generate a response in real time. Switch between text, code, and data output modes.
+            Type a prompt and watch OmniAI generate a response in real time via backend API. Switch between text, code, and data output modes.
           </p>
         </div>
 
@@ -167,7 +176,7 @@ export default function Playground() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-white/80">NexusAI Playground</span>
+              <span className="text-sm font-medium text-white/80">OmniAI Playground</span>
             </div>
             <div className="flex items-center gap-2">
               {/* Output type switcher */}
@@ -206,7 +215,7 @@ export default function Playground() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate();
                 }}
-                placeholder="Ask NexusAI anything... e.g. 'Analyze Q4 revenue and generate a report'"
+                placeholder="Ask OmniAI anything... e.g. 'Analyze Q4 revenue and generate a report'"
                 className="flex-1 w-full resize-none rounded-xl glass p-4 text-sm text-white/80 placeholder:text-white/30 font-mono leading-relaxed focus:outline-none focus:border-brand-500/40 transition-colors min-h-[200px]"
               />
 
@@ -257,7 +266,7 @@ export default function Playground() {
                 {hasResult && (
                   <div className="flex items-center gap-2 text-xs text-white/30 font-mono">
                     <Hash className="h-3 w-3" />
-                    <span>nexus-2.0-turbo</span>
+                    <span>claude-3-5-sonnet</span>
                   </div>
                 )}
               </div>

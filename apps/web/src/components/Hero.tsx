@@ -12,14 +12,14 @@ const demoPrompts = [
   'Create a customer support response for a billing issue...',
 ];
 
-const demoResponse = `NexusAI can analyze thousands of papers in seconds. Here's a concise summary of recent transformer advances:
+const demoResponse = `OmniAI orchestrates multi-provider models (Claude 3.5 Sonnet, GPT-4o, Gemini) in seconds. Here's a concise summary:
 
-1. **Efficient Attention** — Linear attention mechanisms reduce O(n²) complexity
-2. **Mixture of Experts** — Dynamic routing activates only relevant sub-networks
-3. **Long-context Windows** — Extended context up to 1M tokens with RoPE scaling
-4. **Multimodal Fusion** — Cross-attention unifies text, image, and audio streams
+1. **Multi-Model Routing** — Dynamically route requests between Anthropic, OpenAI, and Google
+2. **Unified Database** — PostgreSQL & Prisma persistence for all conversations and usage
+3. **Long-context Windows** — Extended context up to 1M+ tokens across models
+4. **Multimodal Fusion** — Cross-attention unifies text, image, and document streams
 
-These breakthroughs enable faster training, lower inference costs, and richer understanding.`;
+These backend capabilities enable high-throughput production AI workflows.`;
 
 export default function Hero({ onLaunch }: HeroProps) {
   const [promptIndex, setPromptIndex] = useState(0);
@@ -105,9 +105,9 @@ export default function Hero({ onLaunch }: HeroProps) {
             </h1>
 
             {/* Subheadline */}
-            <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto lg:mx-0 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-              NexusAI is the enterprise-grade platform that transforms how teams build, deploy, and scale AI-powered workflows. From prompt to production in minutes.
-            </p>
+             <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto lg:mx-0 animate-fade-up" style={{ animationDelay: '0.1s' }}>
+               OmniAI is the multi-provider enterprise platform that connects your frontend directly to production AI models (Claude, GPT-4o, Gemini) and backend microservices.
+             </p>
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-fade-up" style={{ animationDelay: '0.2s' }}>
@@ -161,7 +161,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-white/40">
                   <Sparkles className="h-3.5 w-3.5 text-brand-400" />
-                  <span className="font-mono">nexus-ai / playground</span>
+                  <span className="font-mono">omni-ai / playground</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -223,7 +223,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-white/30 font-mono">Model:</span>
-                    <span className="text-xs text-brand-400 font-mono font-medium">nexus-2.0-turbo</span>
+                    <span className="text-xs text-brand-400 font-mono font-medium">claude-3-5-sonnet</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-white/30 font-mono">
                     <span>128k ctx</span>

@@ -1,104 +1,99 @@
-# AI-Powered SaaS Platform (Nexus AI)
+# AI-Powered SaaS Platform (Nexus AI) — Monorepo
 
-A modern, production-grade AI-powered SaaS platform frontend built with **React**, **TypeScript**, **Tailwind CSS**, and **Vite**. Features a rich marketing landing page, an interactive AI playground, and a fully featured user dashboard with model selection, analytics, templates, and history.
+A modern, production-grade AI-powered SaaS platform monorepo combining a **React/TypeScript frontend**, **Prisma database package**, **Multi-provider AI SDK (Anthropic, OpenAI, Gemini)**, and a **FastAPI Python AI microservice**.
 
 ---
 
 ![FIRST UI](https://github.com/sicte/AI-Powered-Saas/blob/main/assets/img/first.gif)
 
+## Architecture & Monorepo Structure
+
+```tree
+├── apps/
+│   └── web/                 # React + TypeScript Vite frontend (UI/Client)
+├── packages/
+│   ├── ai-sdk/              # Multi-provider LLM SDK (Claude, OpenAI, Gemini, Zod)
+│   └── database/            # Prisma ORM schema & client configuration
+├── services/
+│   └── ai/                  # FastAPI Python microservice (Text chunking & embeddings)
+├── docker-compose.yml       # Local infrastructure (PostgreSQL, Redis, MinIO)
+└── package.json             # Root monorepo workspace configuration
+```
+
 ## Features
 
-### 🚀 Landing Page
+### 🚀 Frontend (`apps/web`)
+- **Landing Page:** High-converting header with live AI prompt preview simulation and call-to-actions.
+- **Interactive Playground:** Live demonstration area where visitors can test AI prompts directly.
+- **Application Dashboard:** Multi-model selector (`Nexus 2.0 Turbo`, `Nexus 2.0 Pro`, `Nexus 1.5`, `Nexus Vision`), temperature control, chat history, templates, and analytics view.
 
-- **Hero Section:** High-converting header with live AI prompt preview simulation and call-to-actions.
-- **Features Section:** Detailed showcase of platform capabilities (Advanced LLM generation, multimodal support, enterprise security, API access).
-- **Interactive Playground:** Live demonstration area where visitors can test AI prompts directly on the marketing site.
-- **Pricing Tiers:** Clear pricing breakdown (Free, Pro, Enterprise) with feature comparison.
-- **Navigation & Footer:** Responsive navigation bar with quick launch and dark-mode polished styling.
-
-### 💼 Application Dashboard
-
-- **AI Chat & Playground:** Multi-model selector (`Nexus 2.0 Turbo`, `Nexus 2.0 Pro`, `Nexus 1.5`, `Nexus Vision`), temperature control, and real-time generation simulation.
-- **Chat History:** Persistent sidebar listing past conversations and quick session management.
-- **Templates Library:** Pre-built prompts and starter templates for marketing copy, code review, data analysis, etc.
-- **Analytics View:** Usage charts, token tracking, request metrics, and cost monitoring.
-- **Settings & User Management:** Account preferences, API keys management, and team settings.
-- **Supabase Integration:** Pre-configured Supabase client (`@supabase/supabase-js`) ready for authentication and database persistence.
-
----
-
-## Tech Stack
-
-- **Framework:** React 18 with TypeScript
-- **Build Tool:** Vite
-- **Styling:** Tailwind CSS with custom color palettes and PostCSS
-- **Icons:** Lucide React
-- **Backend / Auth:** Supabase (`@supabase/supabase-js`)
+### 🧠 Backend & Packages (`packages/` & `services/`)
+- **`@ai-saas/ai-sdk`:** Unified TypeScript SDK supporting Anthropic Claude, OpenAI GPT, and Google Gemini with robust fallback and quota handling.
+- **`@ai-saas/database`:** PostgreSQL database client powered by Prisma ORM (`User`, `Organization`, `Project`, `Conversation`, `Message`, `Document`, `UsageRecord`, `Subscription`, `ApiKey`, `AuditLog`).
+- **Python AI Service (`services/ai`):** FastAPI service providing document chunking and embedding generation endpoints.
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-
 - Node.js (v18+ recommended)
-- npm or yarn
+- Python 3.10+ (for the Python AI microservice)
+- Docker & Docker Compose (for local PostgreSQL, Redis, MinIO infrastructure)
 
 ### Installation & Running Locally
 
-1. Clone the repository:
-
+#### Option A: Running with Docker (Recommended)
+1. Install dependencies:
    ```bash
-   git clone <repository-url>
-   cd ai-powered-saas
+   npm install
    ```
+2. Start infrastructure (PostgreSQL, Redis, MinIO) via Docker Compose:
+   ```bash
+   npm run docker:up
+   ```
+3. Start the frontend development server:
+   ```bash
+   npm run dev:web
+   ```
+4. Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-2. Install dependencies:
-
+#### Option B: Running without Docker
+1. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Run the development server:
+2. **Run Backend (Database & Python Service):**
+   - **Database (Prisma):** Ensure your PostgreSQL instance is running and `.env` is configured with `DATABASE_URL`. Generate the Prisma client:
+     ```bash
+     npx prisma generate --schema=packages/database/prisma/schema.prisma
+     ```
+   - **Python AI Service (FastAPI):**
+     ```bash
+     cd services/ai
+     pip install -r requirements.txt
+     uvicorn app.main:app --reload --port 8000
+     ```
 
+3. **Run Frontend:**
+   In the root directory, start the frontend development server:
    ```bash
-   npm run dev
+   npm run dev:web
    ```
-
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
-## Available Scripts
-
-- `npm run dev` — Starts the Vite development server.
-- `npm run build` — Builds the application for production.
-- `npm run preview` — Locally preview the production build.
-- `npm run lint` — Run ESLint across the codebase.
-- `npm run typecheck` — Run TypeScript type checking without emitting files.
+   Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## Project Structure
+## Workspace Scripts
 
-```tree
-├── src/
-│   ├── components/
-│   │   ├── Dashboard.tsx    # Main dashboard application & chat interface
-│   │   ├── Features.tsx     # Platform features section
-│   │   ├── Footer.tsx       # Site footer
-│   │   ├── Hero.tsx         # Landing page hero
-│   │   ├── Navbar.tsx       # Top navigation bar
-│   │   ├── Playground.tsx   # Interactive landing page AI playground
-│   │   └── Pricing.tsx      # Pricing plans component
-│   ├── App.tsx              # Root component managing view states (landing / dashboard)
-│   ├── index.css            # Global Tailwind CSS styles
-│   └── main.tsx             # React entry point
-├── package.json
-├── tailwind.config.js
-├── tsconfig.json
-└── vite.config.ts
-```
+- `npm run dev:web` — Starts the Vite frontend development server.
+- `npm run build:web` — Builds the frontend application for production.
+- `npm run preview:web` — Locally preview the production build.
+- `npm run lint:web` — Run ESLint on the frontend codebase.
+- `npm run typecheck:web` — Run TypeScript type checking for the frontend.
+- `npm run docker:up` — Start Docker Compose infrastructure.
+- `npm run docker:down` — Stop Docker Compose infrastructure.
 
 ---
 

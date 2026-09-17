@@ -35,10 +35,10 @@ const navItems: { id: NavItem; label: string; icon: typeof MessageSquare }[] = [
 ];
 
 const models = [
-  { id: 'nexus-2.0-turbo', name: 'Nexus 2.0 Turbo', desc: 'Fastest · 128k context', badge: 'New' },
-  { id: 'nexus-2.0-pro', name: 'Nexus 2.0 Pro', desc: 'Most capable · 256k context', badge: '' },
-  { id: 'nexus-1.5', name: 'Nexus 1.5', desc: 'Balanced · 64k context', badge: '' },
-  { id: 'nexus-vision', name: 'Nexus Vision', desc: 'Multimodal · Image + Text', badge: 'Beta' },
+  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', desc: 'Anthropic · Advanced reasoning', badge: 'New' },
+  { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI · Multimodal & fast', badge: '' },
+  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · High throughput', badge: '' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google · 2M context', badge: 'Beta' },
 ];
 
 const chatHistory = [
@@ -76,18 +76,42 @@ export default function Dashboard({ onExit }: DashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!prompt.trim() || isGenerating) return;
 
     const userMsg = { role: 'user' as const, content: prompt };
     setMessages((prev) => [...prev, userMsg]);
+    const currentPrompt = prompt;
     setPrompt('');
     setIsGenerating(true);
 
-    timerRef.current = setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          model: selectedModel.id,
+          temperature: temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response from backend service.');
+      }
+
+      const data = await response.json();
+      const aiContent = data.response || 'Received empty response from backend service.';
+
       setIsGenerating(false);
-      setMessages((prev) => [...prev, { role: 'ai', content: mockResponse }]);
-    }, 1800);
+      setMessages((prev) => [...prev, { role: 'ai', content: aiContent }]);
+    } catch (error: any) {
+      setIsGenerating(false);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'ai', content: `Error communicating with backend: ${error.message || 'Unknown error'}` },
+      ]);
+    }
   };
 
   const handleNewChat = () => {
@@ -116,7 +140,7 @@ export default function Dashboard({ onExit }: DashboardProps) {
                 <Sparkles className="h-4 w-4 text-white" strokeWidth={2.5} />
               </div>
             </div>
-            <span className="font-bold text-sm">Nexus<span className="text-brand-400">AI</span></span>
+            <span className="font-bold text-sm">Omni<span className="text-brand-400">AI</span></span>
           </div>
           <button
             onClick={onExit}
@@ -343,9 +367,9 @@ export default function Dashboard({ onExit }: DashboardProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-semibold text-white">
-                          {msg.role === 'user' ? 'You' : 'NexusAI'}
-                        </span>
+                         <span className="text-xs font-semibold text-white">
+                           {msg.role === 'user' ? 'You' : 'OmniAI'}
+                         </span>
                         {msg.role === 'ai' && (
                           <span className="text-[10px] text-white/30 font-mono">{selectedModel.id}</span>
                         )}
@@ -394,20 +418,20 @@ export default function Dashboard({ onExit }: DashboardProps) {
         <div className="border-t border-white/[0.06] glass-strong p-4">
           <div className="max-w-3xl mx-auto">
             <div className="glass rounded-xl p-2 flex items-end gap-2">
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder="Message NexusAI..."
-                rows={1}
-                className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-32"
-                style={{ minHeight: '40px' }}
-              />
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Message OmniAI..."
+                  rows={1}
+                  className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-32"
+                  style={{ minHeight: '40px' }}
+                />
               <button
                 onClick={handleSend}
                 disabled={!prompt.trim() || isGenerating}
@@ -417,7 +441,7 @@ export default function Dashboard({ onExit }: DashboardProps) {
               </button>
             </div>
             <p className="text-[10px] text-white/30 text-center mt-2 font-mono">
-              NexusAI can make mistakes. Verify important information.
+              OmniAI models can make mistakes. Verify important information.
             </p>
           </div>
         </div>

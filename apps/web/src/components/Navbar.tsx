@@ -40,7 +40,7 @@ export default function Navbar({ onLaunch }: NavbarProps) {
               </div>
             </div>
             <span className="text-lg font-bold tracking-tight">
-              Nexus<span className="text-brand-400">AI</span>
+              Omni<span className="text-brand-400">AI</span>
             </span>
           </a>
 

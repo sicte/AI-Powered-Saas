@@ -40,11 +40,11 @@ export default function Footer({ onLaunch }: FooterProps) {
                 </div>
               </div>
               <span className="text-lg font-bold tracking-tight">
-                Nexus<span className="text-brand-400">AI</span>
+                Omni<span className="text-brand-400">AI</span>
               </span>
             </a>
             <p className="text-sm text-white/50 max-w-xs leading-relaxed mb-5">
-              The enterprise-grade AI platform for building, deploying, and scaling intelligent applications.
+              The multi-provider enterprise AI platform for building, deploying, and scaling intelligent applications.
             </p>
             <div className="flex items-center gap-3">
               {[
@@ -108,7 +108,7 @@ export default function Footer({ onLaunch }: FooterProps) {
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.06]">
           <p className="text-xs text-white/40">
-            © 2026 NexusAI, Inc. All rights reserved.
+            © 2026 OmniAI, Inc. All rights reserved.
           </p>
           <div className="flex items-center gap-2 text-xs text-white/40">
             <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />

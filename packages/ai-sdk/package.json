@@ -1,0 +1,15 @@
+{
+  "name": "@ai-saas/ai-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.18.0",
+    "@google/generative-ai": "^0.1.3",
+    "openai": "^4.28.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
