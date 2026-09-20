@@ -1,24 +1,45 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X, Loader2, MessageCircle, User, Sparkles } from 'lucide-react';
+import { Bot, Send, X, Loader2, MessageCircle, User, Sparkles, Copy, Check, FileText, ImagePlus } from 'lucide-react';
 import { generateChat } from '@/lib/api';
+import type { Attachment } from '@/lib/attachments';
+import Markdown from '@/components/Markdown';
+import AttachmentButton from '@/components/AttachmentButton';
 
 interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
+  attachment?: Attachment;
 }
 
+const SITE_ASSISTANT_SYSTEM = `You are "OmniAI Assistant", a friendly embedded support assistant for the OmniAI website. Your job is to make visitors feel comfortable and help them use the site, and you can also answer general questions.
+
+About the site (OmniAI):
+- OmniAI is an AI-powered SaaS platform: a React frontend, a FastAPI backend, and AI chat powered by Google Gemini.
+- Visitors do NOT need to sign up to try it: clicking "Launch App" or "Start Building Free" opens the app in Demo mode. Demo users can use the AI chat freely; the History, Templates, Analytics, and Settings areas are read-only until they sign in.
+- Sign Up / Sign In are available in the top navbar and in the dashboard sidebar user card.
+- The landing page has these sections: Features (#features), Playground (#playground, an interactive demo you can type into), Pricing (#pricing), and Docs (#docs).
+- Users can attach images or files (PDF, text, CSV, JSON, code) to a chat message to have them analyzed.
+
+Behavior:
+- Be concise, warm, and practical. Prefer short answers (a few sentences), using light Markdown (bullets or short headings) only when it helps.
+- If the question is about the site, navigation, sign-in, pricing, or how to do something in the app, give clear step-by-step guidance.
+- If the user seems lost on the landing page, gently point them to the Playground or the "Start Building Free" button.
+- You may also answer general questions, help write/debug code, analyze attached files, and draft content.`;
+
 const suggestions = [
-  'What can you do?',
-  'Write a Python script to parse CSV data',
-  'Summarize the key features of this platform',
-  'Help me draft a marketing email',
+  'How do I use this site without signing up?',
+  'What can I do in the Playground?',
+  'How do I create an account?',
+  'Help me write a Python script to parse CSV',
 ];
 
 export default function ChatBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,23 +50,40 @@ export default function ChatBot() {
 
   const send = async (text: string) => {
     const prompt = text.trim();
-    if (!prompt || isGenerating) return;
+    if ((!prompt && !attachment) || isGenerating) return;
 
+    const finalPrompt = prompt || 'Please analyze the attached file/image and tell me about it.';
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: prompt }]);
+    setMessages((prev) => [...prev, { role: 'user', content: finalPrompt, attachment: attachment || undefined }]);
+    const sentAttachment = attachment;
+    setAttachment(null);
     setIsGenerating(true);
 
     try {
-      const data = await generateChat(prompt);
+      const data = await generateChat(finalPrompt, {
+        system: SITE_ASSISTANT_SYSTEM,
+        attachment: sentAttachment || undefined,
+      });
       const aiContent = data.response || 'Received empty response.';
       setMessages((prev) => [...prev, { role: 'ai', content: aiContent }]);
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       setMessages((prev) => [
         ...prev,
-        { role: 'ai', content: `Error communicating with the assistant: ${error.message || 'Unknown error'}` },
+        { role: 'ai', content: `Error communicating with the assistant: ${message}` },
       ]);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const copyMessage = async (index: number, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedId(index);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      setCopiedId(null);
     }
   };
 
@@ -86,7 +124,7 @@ export default function ChatBot() {
                 <div className="text-sm font-semibold text-white leading-tight">OmniAI Assistant</div>
                 <div className="flex items-center gap-1.5 text-[10px] text-white/50">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Gemini · Online
+                  Site assistant · Online
                 </div>
               </div>
             </div>
@@ -106,9 +144,10 @@ export default function ChatBot() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 mb-3">
                   <MessageCircle className="h-6 w-6 text-white" />
                 </div>
-                <p className="text-sm font-medium text-white">Hi! I'm the OmniAI assistant.</p>
+                <p className="text-sm font-medium text-white">Hi! I'm the OmniAI site assistant.</p>
                 <p className="text-xs text-white/50 mt-1 mb-4 max-w-[260px]">
-                  Ask me anything — code, analysis, writing, or help with this platform.
+                  I can help you explore this site, create an account, or answer anything else. You can
+                  even attach an image or file.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {suggestions.map((s) => (
@@ -137,13 +176,47 @@ export default function ChatBot() {
                     )}
                   </div>
                   <div
-                    className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
+                    className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-gradient-to-r from-brand-600 to-violet-600 text-white rounded-tr-none'
                         : 'glass text-white/80 rounded-tl-none'
                     }`}
                   >
-                    {msg.content}
+                    {msg.attachment && (
+                      <div className="flex items-center gap-2 mb-2 rounded-lg bg-black/20 px-2.5 py-1.5 text-xs">
+                        {msg.attachment.preview ? (
+                          <img
+                            src={msg.attachment.preview}
+                            alt={msg.attachment.name}
+                            className="h-8 w-8 rounded object-cover"
+                          />
+                        ) : (
+                          <FileText className="h-4 w-4 text-white/50" />
+                        )}
+                        <span className="truncate text-white/60">{msg.attachment.name}</span>
+                      </div>
+                    )}
+                    <div className="whitespace-pre-line">
+                      {msg.role === 'ai' ? <Markdown content={msg.content} /> : msg.content}
+                    </div>
+                    {msg.role === 'ai' && (
+                      <button
+                        onClick={() => copyMessage(i, msg.content)}
+                        className="mt-2 inline-flex items-center gap-1 text-[10px] text-white/40 hover:text-white/70 transition-colors"
+                      >
+                        {copiedId === i ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -168,7 +241,25 @@ export default function ChatBot() {
 
           {/* Input */}
           <div className="p-3 border-t border-white/[0.06]">
+            {attachment && (
+              <div className="mb-2 flex items-center gap-2 rounded-lg glass px-2.5 py-1.5 text-xs">
+                {attachment.preview ? (
+                  <img src={attachment.preview} alt={attachment.name} className="h-8 w-8 rounded object-cover" />
+                ) : (
+                  <ImagePlus className="h-4 w-4 text-white/50" />
+                )}
+                <span className="truncate text-white/60">{attachment.name}</span>
+                <button
+                  onClick={() => setAttachment(null)}
+                  className="ml-auto text-white/40 hover:text-white"
+                  aria-label="Remove attachment"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
             <div className="glass rounded-xl p-1.5 flex items-end gap-1.5">
+              <AttachmentButton onAttach={setAttachment} disabled={isGenerating} />
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -180,12 +271,12 @@ export default function ChatBot() {
                 }}
                 placeholder="Ask OmniAI anything..."
                 rows={1}
-                className="flex-1 resize-none bg-transparent px-2.5 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-28"
+                className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-28"
                 style={{ minHeight: '36px' }}
               />
               <button
                 onClick={() => send(input)}
-                disabled={!input.trim() || isGenerating}
+                disabled={(!input.trim() && !attachment) || isGenerating}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-brand-500/40 transition-all"
                 aria-label="Send message"
               >

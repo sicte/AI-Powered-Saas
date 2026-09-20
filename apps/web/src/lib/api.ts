@@ -83,9 +83,32 @@ export async function getDemo(): Promise<{ token: string; user: User }> {
   return apiRequest('/api/v1/auth/demo', { method: 'POST' });
 }
 
-export async function generateChat(prompt: string): Promise<{ response: string; model: string }> {
+export interface GenerateOptions {
+  system?: string;
+  attachment?: import('./attachments').Attachment;
+}
+
+export async function generateChat(
+  prompt: string,
+  options: GenerateOptions = {}
+): Promise<{ response: string; model: string }> {
+  const payload: Record<string, unknown> = { prompt };
+
+  if (options.system) {
+    payload.system = options.system;
+  }
+  if (options.attachment) {
+    if (options.attachment.kind === 'image') {
+      payload.image_data = options.attachment.data;
+      payload.image_mime = options.attachment.mime;
+    } else {
+      payload.file_data = options.attachment.data;
+      payload.file_name = options.attachment.name;
+    }
+  }
+
   return apiRequest('/api/v1/generate', {
     method: 'POST',
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify(payload),
   });
 }

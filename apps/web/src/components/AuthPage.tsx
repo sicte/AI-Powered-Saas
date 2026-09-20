@@ -28,8 +28,8 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
         await signIn(email, password);
       }
       onSuccess();
-    } catch (err: any) {
-      setError(err?.message || 'Something went wrong. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }

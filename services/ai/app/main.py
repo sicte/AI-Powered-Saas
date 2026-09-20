@@ -3,9 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import os
+import io
+import base64
 import secrets
 import hashlib
 import hmac
+import tempfile
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -155,6 +158,11 @@ class MeResponse(BaseModel):
 
 class GenerateRequest(BaseModel):
     prompt: str
+    system: Optional[str] = None
+    image_data: Optional[str] = None
+    image_mime: Optional[str] = None
+    file_data: Optional[str] = None
+    file_name: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):
@@ -280,15 +288,41 @@ def generate_ai_response(req: GenerateRequest, authorization: Optional[str] = He
         genai.configure(api_key=api_key)
 
         model_name = DEFAULT_MODEL
-        model = genai.GenerativeModel(model_name)
+        kwargs = {}
+        if req.system and req.system.strip():
+            kwargs["system_instruction"] = req.system.strip()
+        model = genai.GenerativeModel(model_name, **kwargs)
 
-        result = model.generate_content(req.prompt)
+        parts: List[object] = [req.prompt]
+
+        if req.image_data:
+            mime = req.image_mime or "image/png"
+            image_bytes = base64.b64decode(req.image_data)
+            from PIL import Image
+
+            image = Image.open(io.BytesIO(image_bytes))
+            parts.append(image)
+        elif req.file_data:
+            file_bytes = base64.b64decode(req.file_data)
+            name = req.file_name or "upload.bin"
+            with tempfile.NamedTemporaryFile(suffix="_" + os.path.basename(name), delete=False) as tmp:
+                tmp.write(file_bytes)
+                tmp_path = tmp.name
+            try:
+                uploaded = genai.upload_file(tmp_path, display_name=name)
+                parts.append(uploaded)
+                parts = [uploaded, req.prompt]
+            finally:
+                os.unlink(tmp_path)
+
+        result = model.generate_content(parts)
         return {"response": result.text, "model": model_name}
     except Exception as e:
+        detail = str(e).splitlines()[0][:200] if str(e) else "Unknown error"
         fallback_text = (
-            f"Gemini AI Response (Live Integration Fallback):\n"
-            f"Based on your prompt: '{req.prompt}', here is the analysis and generated solution. "
-            f"[Error detail: {str(e)}]"
+            f"I hit a temporary snag while processing that request ({model_name}). "
+            f"Please try again in a moment. "
+            f"[{detail}]"
         )
         return {"response": fallback_text, "model": model_name if 'model_name' in dir() else DEFAULT_MODEL}
 

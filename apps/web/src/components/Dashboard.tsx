@@ -10,6 +10,8 @@ import {
   Loader2,
   Download,
   Copy,
+  Check,
+  ImagePlus,
   Plus,
   Search,
   User,
@@ -17,9 +19,14 @@ import {
   LogIn,
   ArrowLeft,
   Lock,
+  X,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { generateChat } from '@/lib/api';
+import type { Attachment } from '@/lib/attachments';
+import Markdown from '@/components/Markdown';
+import AttachmentButton from '@/components/AttachmentButton';
 
 interface DashboardProps {
   onExit: () => void;
@@ -49,32 +56,60 @@ export default function Dashboard({ onExit, onSignIn }: DashboardProps) {
   const { user, isDemo, signOut } = useAuth();
   const [activeNav, setActiveNav] = useState<NavItem>('chats');
   const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([]);
+  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string; attachment?: Attachment }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const handleSend = async () => {
-    if (!prompt.trim() || isGenerating) return;
+    const currentPrompt = prompt.trim();
+    if ((!currentPrompt && !attachment) || isGenerating) return;
 
-    const userMsg = { role: 'user' as const, content: prompt };
+    const finalPrompt = currentPrompt || 'Please analyze the attached file/image and tell me about it.';
+    const userMsg = { role: 'user' as const, content: finalPrompt, attachment: attachment || undefined };
     setMessages((prev) => [...prev, userMsg]);
-    const currentPrompt = prompt;
     setPrompt('');
+    const sentAttachment = attachment;
+    setAttachment(null);
     setIsGenerating(true);
 
     try {
-      const data = await generateChat(currentPrompt);
+      const data = await generateChat(finalPrompt, { attachment: sentAttachment || undefined });
       const aiContent = data.response || 'Received empty response from backend service.';
 
       setIsGenerating(false);
       setMessages((prev) => [...prev, { role: 'ai', content: aiContent }]);
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       setIsGenerating(false);
       setMessages((prev) => [
         ...prev,
-        { role: 'ai', content: `Error communicating with backend: ${error.message || 'Unknown error'}` },
+        { role: 'ai', content: `Error communicating with backend: ${message}` },
       ]);
     }
+  };
+
+  const copyMessage = async (index: number, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedId(index);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      setCopiedId(null);
+    }
+  };
+
+  const downloadMessage = (content: string) => {
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `omninai-response-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleNewChat = () => {
@@ -338,16 +373,49 @@ export default function Dashboard({ onExit, onSignIn }: DashboardProps) {
                           </span>
                           <span className="text-[10px] text-white/30 font-mono">Gemini</span>
                         </div>
-                        <div className="text-sm text-white/75 leading-relaxed whitespace-pre-line">
-                          {msg.content}
+                        {msg.attachment && (
+                          <div className="flex items-center gap-2 mb-2 rounded-lg bg-white/5 px-2.5 py-1.5 w-fit text-xs">
+                            {msg.attachment.preview ? (
+                              <img
+                                src={msg.attachment.preview}
+                                alt={msg.attachment.name}
+                                className="h-8 w-8 rounded object-cover"
+                              />
+                            ) : (
+                              <FileText className="h-4 w-4 text-white/50" />
+                            )}
+                            <span className="truncate text-white/60">{msg.attachment.name}</span>
+                          </div>
+                        )}
+                        <div className="text-sm text-white/75 leading-relaxed">
+                          {msg.role === 'ai' ? (
+                            <Markdown content={msg.content} />
+                          ) : (
+                            <span className="whitespace-pre-line">{msg.content}</span>
+                          )}
                         </div>
                         {msg.role === 'ai' && (
                           <div className="flex items-center gap-2 mt-3">
-                            <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
-                              <Copy className="h-3 w-3" />
-                              Copy
+                            <button
+                              onClick={() => copyMessage(i, msg.content)}
+                              className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+                            >
+                              {copiedId === i ? (
+                                <>
+                                  <Check className="h-3 w-3 text-emerald-400" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3" />
+                                  Copy
+                                </>
+                              )}
                             </button>
-                            <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+                            <button
+                              onClick={() => downloadMessage(msg.content)}
+                              className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
+                            >
                               <Download className="h-3 w-3" />
                               Save
                             </button>
@@ -383,7 +451,25 @@ export default function Dashboard({ onExit, onSignIn }: DashboardProps) {
         {activeNav === 'chats' && (
           <div className="border-t border-white/[0.06] glass-strong p-4">
             <div className="max-w-3xl mx-auto">
-              <div className="glass rounded-xl p-2 flex items-end gap-2">
+              {attachment && (
+                <div className="mb-2 flex items-center gap-2 rounded-lg glass px-2.5 py-1.5 w-fit text-xs">
+                  {attachment.preview ? (
+                    <img src={attachment.preview} alt={attachment.name} className="h-8 w-8 rounded object-cover" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4 text-white/50" />
+                  )}
+                  <span className="truncate text-white/60">{attachment.name}</span>
+                  <button
+                    onClick={() => setAttachment(null)}
+                    className="ml-1 text-white/40 hover:text-white"
+                    aria-label="Remove attachment"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              <div className="glass rounded-xl p-2 flex items-end gap-1.5">
+                <AttachmentButton onAttach={setAttachment} disabled={isGenerating} />
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -395,12 +481,12 @@ export default function Dashboard({ onExit, onSignIn }: DashboardProps) {
                   }}
                   placeholder="Message OmniAI..."
                   rows={1}
-                  className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-32"
+                  className="flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-32"
                   style={{ minHeight: '40px' }}
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!prompt.trim() || isGenerating}
+                  disabled={(!prompt.trim() && !attachment) || isGenerating}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-brand-500/40 transition-all"
                 >
                   <Send className="h-4 w-4" />

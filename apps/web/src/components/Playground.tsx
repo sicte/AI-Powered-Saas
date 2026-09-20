@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Sparkles, Send, Loader2, Code2, BarChart3, FileText, Hash } from 'lucide-react';
 import { generateChat } from '@/lib/api';
+import Markdown from '@/components/Markdown';
 
 type OutputType = 'text' | 'code' | 'data';
 
@@ -90,7 +91,6 @@ const suggestions = [
 
 export default function Playground() {
   const [prompt, setPrompt] = useState('');
-  const [output, setOutput] = useState('');
   const [outputType, setOutputType] = useState<OutputType>('text');
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasResult, setHasResult] = useState(false);
@@ -102,7 +102,6 @@ export default function Playground() {
 
     setIsGenerating(true);
     setHasResult(false);
-    setOutput('');
     setDisplayedOutput('');
 
     try {
@@ -111,14 +110,12 @@ export default function Playground() {
 
       setIsGenerating(false);
       setHasResult(true);
-      setOutput(result);
       setDisplayedOutput(result);
-    } catch (error: any) {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       setIsGenerating(false);
       setHasResult(true);
-      const errResult = `Error connecting to backend service: ${error.message || 'Unknown error'}`;
-      setOutput(errResult);
-      setDisplayedOutput(errResult);
+      setDisplayedOutput(`Error connecting to backend service: ${message}`);
     }
   };
 
@@ -259,12 +256,9 @@ export default function Playground() {
                     <p className="text-xs text-white/40 font-mono">Generating response...</p>
                   </div>
                 ) : hasResult ? (
-                  <pre className={`text-sm leading-relaxed whitespace-pre-wrap font-mono ${outputType === 'code' ? 'text-green-300/90' : 'text-white/80'}`}>
-                    {displayedOutput}
-                    {displayedOutput.length < output.length && (
-                      <span className="inline-block w-0.5 h-4 bg-brand-400 animate-blink align-middle" />
-                    )}
-                  </pre>
+                  <div className="text-sm leading-relaxed">
+                    <Markdown content={displayedOutput} />
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center gap-2">
                     <Sparkles className="h-8 w-8 text-white/10" />
