@@ -44,7 +44,7 @@ export default function Footer({ onLaunch }: FooterProps) {
               </span>
             </a>
             <p className="text-sm text-white/50 max-w-xs leading-relaxed mb-5">
-              The multi-provider enterprise AI platform for building, deploying, and scaling intelligent applications.
+              The enterprise AI platform powered by Google Gemini — build, deploy, and scale intelligent applications.
             </p>
             <div className="flex items-center gap-3">
               {[

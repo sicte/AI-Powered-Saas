@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   MessageSquare,
   History,
@@ -8,20 +8,22 @@ import {
   Sparkles,
   Send,
   Loader2,
-  ChevronDown,
-  Thermometer,
   Download,
   Copy,
   Plus,
   Search,
   User,
   LogOut,
+  LogIn,
   ArrowLeft,
-  Zap,
+  Lock,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { generateChat } from '@/lib/api';
 
 interface DashboardProps {
   onExit: () => void;
+  onSignIn: () => void;
 }
 
 type NavItem = 'chats' | 'history' | 'templates' | 'analytics' | 'settings';
@@ -34,13 +36,6 @@ const navItems: { id: NavItem; label: string; icon: typeof MessageSquare }[] = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-const models = [
-  { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', desc: 'Google · High throughput', badge: 'Default' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google · 2M context', badge: '' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', desc: 'Anthropic · Advanced reasoning', badge: '' },
-  { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI · Multimodal & fast', badge: '' },
-];
-
 const chatHistory = [
   { title: 'Q4 Revenue Analysis', time: '2 min ago' },
   { title: 'Marketing copy draft', time: '1 hr ago' },
@@ -50,31 +45,13 @@ const chatHistory = [
   { title: 'API documentation generator', time: '3 days ago' },
 ];
 
-const mockResponse = `Here's a breakdown of the key insights from your request:
-
-**Summary:** The analysis reveals three actionable patterns in your data.
-
-1. **Top performers** — Enterprise tier drives 48% of revenue with 92% retention
-2. **Growth opportunity** — SMB segment shows 17% QoQ growth, underutilized
-3. **Risk factors** — Churn concentrated in months 2-3 of onboarding
-
-**Recommended actions:**
-- Double down on enterprise sales motion
-- Launch SMB onboarding improvement sprint
-- Implement early-warning churn detection
-
-Would you like me to create a detailed implementation plan for any of these?`;
-
-export default function Dashboard({ onExit }: DashboardProps) {
+export default function Dashboard({ onExit, onSignIn }: DashboardProps) {
+  const { user, isDemo, signOut } = useAuth();
   const [activeNav, setActiveNav] = useState<NavItem>('chats');
-  const [selectedModel, setSelectedModel] = useState(models[0]);
-  const [modelOpen, setModelOpen] = useState(false);
-  const [temperature, setTemperature] = useState(0.7);
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSend = async () => {
     if (!prompt.trim() || isGenerating) return;
@@ -86,21 +63,7 @@ export default function Dashboard({ onExit }: DashboardProps) {
     setIsGenerating(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: currentPrompt,
-          model: selectedModel.id,
-          temperature: temperature,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate response from backend service.');
-      }
-
-      const data = await response.json();
+      const data = await generateChat(currentPrompt);
       const aiContent = data.response || 'Received empty response from backend service.';
 
       setIsGenerating(false);
@@ -176,6 +139,7 @@ export default function Dashboard({ onExit }: DashboardProps) {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
+              {isDemo && item.id !== 'chats' && <Lock className="ml-auto h-3 w-3 text-white/30" />}
             </button>
           ))}
 
@@ -207,12 +171,25 @@ export default function Dashboard({ onExit }: DashboardProps) {
               <User className="h-4 w-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-white truncate">Alex Morgan</div>
-              <div className="text-[10px] text-white/40 truncate">Pro Plan</div>
+              <div className="text-xs font-medium text-white truncate">{user?.name || 'Guest'}</div>
+              <div className="text-[10px] text-white/40 truncate">
+                {isDemo ? 'Demo · Read-only' : user?.email || 'Pro Plan'}
+              </div>
             </div>
-            <button className="text-white/40 hover:text-white" title="Sign out">
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
+            {isDemo ? (
+              <button
+                onClick={onSignIn}
+                className="inline-flex items-center gap-1 text-white/60 hover:text-white text-[10px] font-medium"
+                title="Sign in to unlock"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                Sign in
+              </button>
+            ) : (
+              <button className="text-white/40 hover:text-white" title="Sign out" onClick={signOut}>
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -241,64 +218,12 @@ export default function Dashboard({ onExit }: DashboardProps) {
 
           {/* Control pills */}
           <div className="flex items-center gap-2">
-            {/* Model selector */}
-            <div className="relative">
-              <button
-                onClick={() => setModelOpen(!modelOpen)}
-                className="inline-flex items-center gap-2 rounded-lg glass glass-hover px-3 py-2 text-xs font-medium text-white/80"
-              >
-                <Zap className="h-3.5 w-3.5 text-brand-400" />
-                <span className="hidden sm:inline">{selectedModel.name}</span>
-                <span className="sm:hidden">Model</span>
-                <ChevronDown className={`h-3.5 w-3.5 text-white/40 transition-transform ${modelOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {modelOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 glass-strong rounded-xl p-2 shadow-2xl z-50 animate-fade-down">
-                  {models.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => { setSelectedModel(model); setModelOpen(false); }}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
-                        selectedModel.id === model.id ? 'bg-brand-600/15' : 'hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="text-left">
-                        <div className="text-sm font-medium text-white flex items-center gap-2">
-                          {model.name}
-                          {model.badge && (
-                            <span className="text-[9px] font-bold uppercase bg-brand-500/20 text-brand-400 px-1.5 py-0.5 rounded">
-                              {model.badge}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-white/40 mt-0.5">{model.desc}</div>
-                      </div>
-                      {selectedModel.id === model.id && (
-                        <div className="h-2 w-2 rounded-full bg-brand-400" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Temperature */}
-            <div className="hidden sm:flex items-center gap-2 rounded-lg glass px-3 py-2">
-              <Thermometer className="h-3.5 w-3.5 text-white/40" />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                className="w-20"
-              />
-              <span className="text-xs font-mono text-white/60 w-8">{temperature.toFixed(1)}</span>
-            </div>
-
-            {/* Export */}
+            {isDemo && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-lg glass px-3 py-2 text-xs text-white/50">
+                <Lock className="h-3.5 w-3.5 text-brand-400" />
+                Demo mode
+              </span>
+            )}
             <button className="inline-flex items-center gap-1.5 rounded-lg glass glass-hover px-3 py-2 text-xs font-medium text-white/80">
               <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Export</span>
@@ -306,118 +231,159 @@ export default function Dashboard({ onExit }: DashboardProps) {
           </div>
         </header>
 
-        {/* Chat area */}
-        <div className="flex-1 overflow-y-auto" onClick={() => modelOpen && setModelOpen(false)}>
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-            {messages.length === 0 ? (
-              /* Empty state */
-              <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-violet-500 blur-xl opacity-30 animate-glow-pulse" />
-                  <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600">
-                    <Sparkles className="h-8 w-8 text-white" strokeWidth={2} />
+        {/* Content area */}
+        {activeNav !== 'chats' ? (
+          /* Non-chat views: read-only for demo, placeholder otherwise */
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+              <div className="glass-strong rounded-2xl p-10 text-center">
+                <div className="relative mb-6 inline-flex">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-violet-500 blur-xl opacity-30" />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600">
+                    {isDemo ? (
+                      <Lock className="h-6 w-6 text-white" />
+                    ) : (
+                      <Sparkles className="h-6 w-6 text-white" />
+                    )}
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">How can I help you today?</h2>
-                <p className="text-sm text-white/50 mb-8 max-w-md">
-                  Ask me anything — from code generation to data analysis. I'm powered by {selectedModel.name}.
-                </p>
-
-                {/* Suggestion cards */}
-                <div className="grid sm:grid-cols-2 gap-3 w-full max-w-2xl">
-                  {[
-                    { title: 'Analyze data', desc: 'Process and visualize datasets', icon: BarChart3 },
-                    { title: 'Write code', desc: 'Generate clean, documented code', icon: LayoutTemplate },
-                    { title: 'Draft content', desc: 'Create marketing copy & docs', icon: MessageSquare },
-                    { title: 'Debug issues', desc: 'Find and fix code problems', icon: Settings },
-                  ].map((card) => (
+                <h2 className="text-xl font-bold text-white mb-2 capitalize">{activeNav}</h2>
+                {isDemo ? (
+                  <>
+                    <p className="text-sm text-white/50 mb-6 max-w-md mx-auto">
+                      This area is read-only in Demo mode. Sign in to unlock {activeNav} and save your
+                      chats.
+                    </p>
                     <button
-                      key={card.title}
-                      onClick={() => setPrompt(`Help me ${card.title.toLowerCase()}: ${card.desc}`)}
-                      className="group glass glass-hover rounded-xl p-4 text-left transition-all hover:-translate-y-0.5"
+                      onClick={onSignIn}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600/15 group-hover:bg-brand-600/25 transition-colors">
-                          <card.icon className="h-4 w-4 text-brand-400" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{card.title}</div>
-                          <div className="text-xs text-white/40 mt-0.5">{card.desc}</div>
-                        </div>
-                      </div>
+                      <LogIn className="h-4 w-4" />
+                      Sign in to unlock
                     </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              /* Messages */
-              <div className="space-y-6">
-                {messages.map((msg, i) => (
-                  <div key={i} className="flex gap-4 animate-fade-up">
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      msg.role === 'user'
-                        ? 'bg-white/5'
-                        : 'bg-gradient-to-br from-brand-500 to-violet-500'
-                    }`}>
-                      {msg.role === 'user' ? (
-                        <User className="h-4 w-4 text-white/60" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1.5">
-                         <span className="text-xs font-semibold text-white">
-                           {msg.role === 'user' ? 'You' : 'OmniAI'}
-                         </span>
-                        {msg.role === 'ai' && (
-                          <span className="text-[10px] text-white/30 font-mono">{selectedModel.id}</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-white/75 leading-relaxed whitespace-pre-line">
-                        {msg.content}
-                      </div>
-                      {msg.role === 'ai' && (
-                        <div className="flex items-center gap-2 mt-3">
-                          <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
-                            <Copy className="h-3 w-3" />
-                            Copy
-                          </button>
-                          <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
-                            <Download className="h-3 w-3" />
-                            Save
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-
-                {/* Generating indicator */}
-                {isGenerating && (
-                  <div className="flex gap-4 animate-fade-in">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500">
-                      <Loader2 className="h-4 w-4 text-white animate-spin" />
-                    </div>
-                    <div className="flex items-center gap-2 h-8">
-                      <div className="flex gap-1.5">
-                        <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0s' }} />
-                        <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.2s' }} />
-                        <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.4s' }} />
-                      </div>
-                      <span className="text-xs text-white/40 font-mono">Thinking...</span>
-                    </div>
-                  </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-white/50 mb-2 max-w-md mx-auto">
+                    {activeNav.charAt(0).toUpperCase() + activeNav.slice(1)} will be available in an
+                    upcoming update.
+                  </p>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Chat area */
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+              {messages.length === 0 ? (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-brand-500 to-violet-500 blur-xl opacity-30 animate-glow-pulse" />
+                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600">
+                      <Sparkles className="h-8 w-8 text-white" strokeWidth={2} />
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-2">How can I help you today?</h2>
+                  <p className="text-sm text-white/50 mb-8 max-w-md">
+                    Ask me anything — from code generation to data analysis. I'm powered by Gemini.
+                  </p>
 
-        {/* Input bar */}
-        <div className="border-t border-white/[0.06] glass-strong p-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="glass rounded-xl p-2 flex items-end gap-2">
+                  {/* Suggestion cards */}
+                  <div className="grid sm:grid-cols-2 gap-3 w-full max-w-2xl">
+                    {[
+                      { title: 'Analyze data', desc: 'Process and visualize datasets', icon: BarChart3 },
+                      { title: 'Write code', desc: 'Generate clean, documented code', icon: LayoutTemplate },
+                      { title: 'Draft content', desc: 'Create marketing copy & docs', icon: MessageSquare },
+                      { title: 'Debug issues', desc: 'Find and fix code problems', icon: Settings },
+                    ].map((card) => (
+                      <button
+                        key={card.title}
+                        onClick={() => setPrompt(`Help me ${card.title.toLowerCase()}: ${card.desc}`)}
+                        className="group glass glass-hover rounded-xl p-4 text-left transition-all hover:-translate-y-0.5"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600/15 group-hover:bg-brand-600/25 transition-colors">
+                            <card.icon className="h-4 w-4 text-brand-400" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-white">{card.title}</div>
+                            <div className="text-xs text-white/40 mt-0.5">{card.desc}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                /* Messages */
+                <div className="space-y-6">
+                  {messages.map((msg, i) => (
+                    <div key={i} className="flex gap-4 animate-fade-up">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-white/5'
+                          : 'bg-gradient-to-br from-brand-500 to-violet-500'
+                      }`}>
+                        {msg.role === 'user' ? (
+                          <User className="h-4 w-4 text-white/60" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-semibold text-white">
+                            {msg.role === 'user' ? 'You' : 'OmniAI'}
+                          </span>
+                          <span className="text-[10px] text-white/30 font-mono">Gemini</span>
+                        </div>
+                        <div className="text-sm text-white/75 leading-relaxed whitespace-pre-line">
+                          {msg.content}
+                        </div>
+                        {msg.role === 'ai' && (
+                          <div className="flex items-center gap-2 mt-3">
+                            <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+                              <Copy className="h-3 w-3" />
+                              Copy
+                            </button>
+                            <button className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+                              <Download className="h-3 w-3" />
+                              Save
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Generating indicator */}
+                  {isGenerating && (
+                    <div className="flex gap-4 animate-fade-in">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500">
+                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                      </div>
+                      <div className="flex items-center gap-2 h-8">
+                        <div className="flex gap-1.5">
+                          <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0s' }} />
+                          <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.2s' }} />
+                          <div className="h-2 w-2 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.4s' }} />
+                        </div>
+                        <span className="text-xs text-white/40 font-mono">Thinking...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Input bar (chat only) */}
+        {activeNav === 'chats' && (
+          <div className="border-t border-white/[0.06] glass-strong p-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="glass rounded-xl p-2 flex items-end gap-2">
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -432,19 +398,20 @@ export default function Dashboard({ onExit }: DashboardProps) {
                   className="flex-1 resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none max-h-32"
                   style={{ minHeight: '40px' }}
                 />
-              <button
-                onClick={handleSend}
-                disabled={!prompt.trim() || isGenerating}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-brand-500/40 transition-all"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+                <button
+                  onClick={handleSend}
+                  disabled={!prompt.trim() || isGenerating}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-brand-500/40 transition-all"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-white/30 text-center mt-2 font-mono">
+                Gemini can make mistakes. Verify important information.
+              </p>
             </div>
-            <p className="text-[10px] text-white/30 text-center mt-2 font-mono">
-              OmniAI models can make mistakes. Verify important information.
-            </p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

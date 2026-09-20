@@ -16,8 +16,8 @@ const plans = [
     highlighted: false,
     cta: 'Start Free',
     features: [
-      '1,000 API calls / month',
-      'Access to nexus-2.0-turbo',
+      '1,000 messages / month',
+      'Powered by Gemini',
       'Community support',
       'Basic analytics dashboard',
       '3 prompt templates',
@@ -32,8 +32,8 @@ const plans = [
     highlighted: true,
     cta: 'Start 14-Day Trial',
     features: [
-      '50,000 API calls / month',
-      'Access to all models',
+      '50,000 messages / month',
+      'Priority AI responses',
       'Priority support (8h SLA)',
       'Advanced analytics & A/B testing',
       'Unlimited prompt templates',

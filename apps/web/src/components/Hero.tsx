@@ -12,14 +12,14 @@ const demoPrompts = [
   'Create a customer support response for a billing issue...',
 ];
 
-const demoResponse = `OmniAI orchestrates multi-provider models (Claude 3.5 Sonnet, GPT-4o, Gemini) in seconds. Here's a concise summary:
+const demoResponse = `OmniAI connects your frontend directly to Google Gemini in real time. Here's a concise summary:
 
-1. **Multi-Model Routing** — Dynamically route requests between Anthropic, OpenAI, and Google
-2. **Unified Database** — PostgreSQL & Prisma persistence for all conversations and usage
-3. **Long-context Windows** — Extended context up to 1M+ tokens across models
-4. **Multimodal Fusion** — Cross-attention unifies text, image, and document streams
+1. **Live Gemini Integration** — Every prompt is handled by Gemini over the backend API
+2. **Instant Streaming** — Responses render the moment they're generated
+3. **Unified Storage** — PostgreSQL persistence for conversations and usage
+4. **Enterprise-Ready** — Authentication, sessions, and demo access built in
 
-These backend capabilities enable high-throughput production AI workflows.`;
+These capabilities power production AI workflows end to end.`;
 
 export default function Hero({ onLaunch }: HeroProps) {
   const [promptIndex, setPromptIndex] = useState(0);
@@ -106,7 +106,7 @@ export default function Hero({ onLaunch }: HeroProps) {
 
             {/* Subheadline */}
              <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto lg:mx-0 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-               OmniAI is the multi-provider enterprise platform that connects your frontend directly to production AI models (Claude, GPT-4o, Gemini) and backend microservices.
+               OmniAI connects your frontend directly to Google Gemini and backend microservices — authentication, sessions, and live AI chat built in.
              </p>
 
             {/* CTAs */}
@@ -207,7 +207,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                         <Sparkles className="h-3.5 w-3.5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs text-white/40 mb-2 font-mono">nexus-ai-2.0 · 1.2s</p>
+                        <p className="text-xs text-white/40 mb-2 font-mono">omni-ai · live</p>
                         <div className="text-sm text-white/75 leading-relaxed whitespace-pre-line font-mono">
                           {typedResponse}
                           {typedResponse.length < demoResponse.length && (
@@ -222,13 +222,12 @@ export default function Hero({ onLaunch }: HeroProps) {
                 {/* Bottom toolbar */}
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/30 font-mono">Model:</span>
-                    <span className="text-xs text-brand-400 font-mono font-medium">gemini-3.5-flash</span>
+                    <span className="text-xs text-white/30 font-mono">Powering:</span>
+                    <span className="text-xs text-brand-400 font-mono font-medium">Gemini</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-white/30 font-mono">
-                    <span>128k ctx</span>
-                    <span>·</span>
-                    <span>0.7 temp</span>
+                  <div className="flex items-center gap-2 text-xs text-white/30 font-mono">
+                    <Sparkles className="h-3 w-3 text-brand-400" />
+                    <span>Live</span>
                   </div>
                 </div>
               </div>

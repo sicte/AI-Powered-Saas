@@ -1,6 +1,6 @@
-# AI-Powered SaaS Platform (Nexus AI) — Monorepo
+# AI-Powered SaaS Platform (OmniAI) — Monorepo
 
-A modern, production-grade AI-powered SaaS platform monorepo combining a **React/TypeScript frontend**, **Prisma database package**, **Multi-provider AI SDK (Anthropic, OpenAI, Gemini)**, and a **FastAPI Python AI microservice**.
+A modern, production-grade AI-powered SaaS platform monorepo combining a **React/TypeScript frontend**, **Prisma database package**, **Gemini AI SDK**, and a **FastAPI Python AI microservice** with PostgreSQL-backed authentication.
 
 ---
 
@@ -12,10 +12,10 @@ A modern, production-grade AI-powered SaaS platform monorepo combining a **React
 ├── apps/
 │   └── web/                 # React + TypeScript Vite frontend (UI/Client)
 ├── packages/
-│   ├── ai-sdk/              # Multi-provider LLM SDK (Claude, OpenAI, Gemini, Zod)
+│   ├── ai-sdk/              # Gemini LLM SDK types & shared client helpers
 │   └── database/            # Prisma ORM schema & client configuration
 ├── services/
-│   └── ai/                  # FastAPI Python microservice (Text chunking & embeddings)
+│   └── ai/                  # FastAPI Python microservice (Auth, Gemini chat, text chunking & embeddings)
 ├── docker-compose.yml       # Local infrastructure (PostgreSQL, Redis, MinIO)
 └── package.json             # Root monorepo workspace configuration
 ```
@@ -25,12 +25,24 @@ A modern, production-grade AI-powered SaaS platform monorepo combining a **React
 ### 🚀 Frontend (`apps/web`)
 - **Landing Page:** High-converting header with live AI prompt preview simulation and call-to-actions.
 - **Interactive Playground:** Live demonstration area where visitors can test AI prompts directly.
-- **Application Dashboard:** Multi-model selector (`Nexus 2.0 Turbo`, `Nexus 2.0 Pro`, `Nexus 1.5`, `Nexus Vision`), temperature control, chat history, templates, and analytics view.
+- **Application Dashboard:** Gemini-powered AI chat with full conversation history, Save/Copy actions, and read-only navigation for anonymous demo users.
+- **Authentication:** Sign Up / Sign In / Sign Out flows backed by PostgreSQL sessions. Visitors can explore with a one-click **Continue as Demo** mode (chat + AI works; other areas are read-only until sign-in).
 
 ### 🧠 Backend & Packages (`packages/` & `services/`)
-- **`@ai-saas/ai-sdk`:** Unified TypeScript SDK supporting Anthropic Claude, OpenAI GPT, and Google Gemini with robust fallback and quota handling.
+- **`@ai-saas/ai-sdk`:** Shared TypeScript types and helpers for the Gemini AI integration.
 - **`@ai-saas/database`:** PostgreSQL database client powered by Prisma ORM (`User`, `Organization`, `Project`, `Conversation`, `Message`, `Document`, `UsageRecord`, `Subscription`, `ApiKey`, `AuditLog`).
-- **Python AI Service (`services/ai`):** FastAPI service providing document chunking and embedding generation endpoints.
+- **Python AI Service (`services/ai`):** FastAPI service providing auth (signup/signin/signout/demo), live Gemini chat (`POST /api/v1/generate`), and document chunking / embedding endpoints.
+
+### 🔐 Auth API (`services/ai`)
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/api/v1/auth/signup` | POST | Create an account with `name`, `email`, `password` |
+| `/api/v1/auth/signin` | POST | Sign in with `email`, `password` |
+| `/api/v1/auth/signout` | POST | Invalidate a session `token` |
+| `/api/v1/auth/demo` | POST | Create a demo session (chat enabled, read-only elsewhere) |
+| `/api/v1/auth/me` | GET | Resolve the current `Bearer` token into a user |
+
+Every chat request (`/api/v1/generate`) automatically attaches the stored session token; demo tokens work for chat, while data endpoints (e.g. `/api/v1/me/history`) require a signed-in account.
 
 ---
 
@@ -65,11 +77,11 @@ A modern, production-grade AI-powered SaaS platform monorepo combining a **React
    ```
 
 2. **Run Backend (Database & Python Service):**
-   - **Database (Prisma):** Ensure your PostgreSQL instance is running and `.env` is configured with `DATABASE_URL`. Generate the Prisma client:
+   - **Database (Prisma):** Ensure your PostgreSQL instance is running and `.env` is configured with `DATABASE_URL` (e.g. `postgresql://postgres:yourpass@localhost:5432/perfect_ai_saas`). Generate the Prisma client:
      ```bash
      npx prisma generate --schema=packages/database/prisma/schema.prisma
      ```
-   - **Python AI Service (FastAPI):**
+   - **Python AI Service (FastAPI):** Creates/reads the `users` and `auth_sessions` tables automatically via SQLAlchemy.
      ```bash
      cd services/ai
      pip install -r requirements.txt

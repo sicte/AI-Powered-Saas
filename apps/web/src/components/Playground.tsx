@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Sparkles, Send, Loader2, Code2, BarChart3, FileText, Hash } from 'lucide-react';
+import { generateChat } from '@/lib/api';
 
 type OutputType = 'text' | 'code' | 'data';
 
@@ -28,19 +29,18 @@ The AI software market is projected to reach **$1.3 trillion** by 2032, driven b
     title: 'Generated Code',
     content: `import { AIOrchestrationService } from '@ai-saas/ai-sdk';
 
-// Initialize the multi-provider client
+// Initialize the Gemini client
 const ai = new AIOrchestrationService();
-const provider = ai.getProvider('openai');
+const provider = ai.getProvider('google');
 
 // Analyze customer feedback at scale
 async function analyzeFeedback(reviews: string[]) {
   const response = await provider.generateText({
-    model: 'gpt-4o',
+    model: 'gemini-3.5-flash',
     messages: reviews.map(r => ({
       role: 'user',
       content: \`Analyze sentiment and extract key themes from this review: \${r}\`
     })),
-    temperature: 0.3,
   });
 
   return response.content;
@@ -95,7 +95,6 @@ export default function Playground() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasResult, setHasResult] = useState(false);
   const [displayedOutput, setDisplayedOutput] = useState('');
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleGenerate = async () => {
@@ -106,24 +105,8 @@ export default function Playground() {
     setOutput('');
     setDisplayedOutput('');
 
-    const currentPrompt = prompt;
-
     try {
-      const response = await fetch('http://localhost:8000/api/v1/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: currentPrompt,
-          model: 'gemini-3.5-flash',
-          temperature: 0.7,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Backend generation failed.');
-      }
-
-      const data = await response.json();
+      const data = await generateChat(prompt);
       const result = data.response || 'No response returned.';
 
       setIsGenerating(false);
@@ -138,12 +121,6 @@ export default function Playground() {
       setDisplayedOutput(errResult);
     }
   };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
 
   const handleSuggestion = (s: string) => {
     setPrompt(s);
@@ -266,7 +243,7 @@ export default function Playground() {
                 {hasResult && (
                   <div className="flex items-center gap-2 text-xs text-white/30 font-mono">
                     <Hash className="h-3 w-3" />
-                    <span>claude-3-5-sonnet</span>
+                    <span>Gemini</span>
                   </div>
                 )}
               </div>
